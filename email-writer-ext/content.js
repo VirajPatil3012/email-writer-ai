@@ -1,34 +1,41 @@
 console.log("EMAIL WRITER EXTENSION - Content Script Loaded");
 
-
-function createAIButton(){
+function createAIButton() {
     const button = document.createElement('button');
+
     button.className = 'T-I J-J5-Ji aoO v7 T-I-atl L3';
     button.style.marginRight = '8px';
     button.innerHTML = 'AI Reply 🤖';
+
     button.setAttribute('role', 'button');
     button.setAttribute('data-tooltip', 'Generate AI Reply');
+
     return button;
 }
 
-function findComposeToolbar(){
+function findComposeToolbar() {
+
     const selectors = [
         '.btC',
         '.aDh',
         '[role="toolbar"]',
         '.gU.Up'
     ];
+
     for (const selector of selectors) {
-        const toolbar = document.querySelector(selector);            
-        if(toolbar)
-            {
-                return toolbar;
-            }    
+
+        const toolbar = document.querySelector(selector);
+
+        if (toolbar) {
+            return toolbar;
         }
-        return null;
+    }
+
+    return null;
 }
 
 function getEmailContent() {
+
     const selectors = [
         '.h7',
         '.a3s.aiL',
@@ -37,92 +44,206 @@ function getEmailContent() {
     ];
 
     for (const selector of selectors) {
+
         const content = document.querySelector(selector);
 
         if (content) {
-            return content.innerText.trim();
+            const text = content.innerText.trim();
+
+            if (text) {
+                return text;
+            }
         }
     }
 
     return '';
 }
 
-function injectButton(){
-    const existingButton = document.querySelector('.ai-reply-button');
-    if(existingButton) existingButton.remove();
+async function generateReply(button) {
+
+    try {
+
+        button.innerHTML = 'Generating...';
+        button.disabled = true;
+
+        const emailContent = getEmailContent();
+
+        if (!emailContent) {
+
+            alert('Could not find the email content.');
+
+            return;
+        }
+
+        const settings = await chrome.storage.local.get([
+            'geminiUrl',
+            'geminiKey'
+        ]);
+
+        const geminiUrl = settings.geminiUrl;
+        const geminiKey = settings.geminiKey;
+
+        if (!geminiUrl || !geminiKey) {
+
+            alert(
+                'Please configure your Gemini API URL and API key by clicking the Email Writer extension icon.'
+            );
+
+            return;
+        }
+
+        const response = await fetch(
+            'https://email-writer-backend-vigy.onrender.com/api/email/generate',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    emailContent: emailContent,
+
+                    tone: 'professional',
+
+                    geminiUrl: geminiUrl,
+
+                    geminiKey: geminiKey
+
+                })
+            }
+        );
+
+        if (!response.ok) {
+
+            const errorText = await response.text();
+
+            console.error('Backend Error:', errorText);
+
+            throw new Error(errorText);
+        }
+
+        const generatedReply = await response.text();
+
+        const composeBox = document.querySelector(
+            '[role="textbox"][contenteditable="true"]'
+        );
+
+        if (composeBox) {
+
+            composeBox.focus();
+
+            document.execCommand(
+                'insertText',
+                false,
+                generatedReply
+            );
+
+        } else {
+
+            console.error('Compose box was not found');
+
+            alert('Could not find the Gmail reply box.');
+        }
+
+    } catch (error) {
+
+        console.error('AI Reply Error:', error);
+
+        alert(
+            'Failed to generate reply: ' + error.message
+        );
+
+    } finally {
+
+        button.innerHTML = 'AI Reply 🤖';
+
+        button.disabled = false;
+    }
+}
+
+function injectButton() {
+
+    const existingButton = document.querySelector(
+        '.ai-reply-button'
+    );
+
+    if (existingButton) {
+        existingButton.remove();
+    }
 
     const toolbar = findComposeToolbar();
-    if(!toolbar)
-    {
-        console.log("Toolbar not Found");
+
+    if (!toolbar) {
+
+        console.log('Toolbar not found');
+
         return;
     }
 
-    console.log("Toolbar found, creating AI button");
+    console.log(
+        'Toolbar found, creating AI button'
+    );
+
     const button = createAIButton();
-    button.classList.add('ai-reply-button');
 
-    button.addEventListener('click', async () => {
-         try{
-            button.innerHTML='Generating...';
-            button.disabled = true;
+    button.classList.add(
+        'ai-reply-button'
+    );
 
-            const emailContent = getEmailContent();
-            const response = await fetch('http://localhost:8080/api/email/generate', {
-                method: 'POST', 
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    emailContent: emailContent,
-                    tone: "professional"
-                }) 
-            });
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Backend Error:", errorText);
-                throw new Error(errorText);
-            }
+    button.addEventListener(
+        'click',
+        () => generateReply(button)
+    );
 
-            const generatedReply = await response.text();
-            const composeBox = document.querySelector('[role="textbox"][contenteditable="true"]');            if(composeBox) {
-                composeBox.focus();
-                document.execCommand('insertText', false, generatedReply);
-            }
-            else
-            {
-                console.error('Compose box was not found');
-            }
-        }
-         catch (error) {
-            console.error("AI Reply Error:", error);
-            alert('Failed to generate reply: ' + error.message);
-        }finally{
-            button.innerHTML = 'AI Reply';
-            button.disabled = false;
-         }
-    }); 
-
-    toolbar.insertBefore(button, toolbar.firstChild);
+    toolbar.insertBefore(
+        button,
+        toolbar.firstChild
+    );
 }
 
-const observer = new MutationObserver((mutations) => {
-    for(const mutation of mutations) {
-        const addedNodes = Array.from(mutation.addedNodes);
-        const hasComposeElements = addedNodes.some(node =>
-            node.nodeType === Node.ELEMENT_NODE &&
-            (node.matches('.aDh, .btC, [role="dialog"]') || node.querySelector('.aDh, .btC, [role="dialog"]'))
-        );
+const observer = new MutationObserver(
+    (mutations) => {
 
-        if(hasComposeElements) {
-            console.log("Compose Window Detected");
-            setTimeout(injectButton, 500);
+        for (const mutation of mutations) {
+
+            const addedNodes =
+                Array.from(mutation.addedNodes);
+
+            const hasComposeElements =
+                addedNodes.some(
+                    node =>
+                        node.nodeType === Node.ELEMENT_NODE &&
+                        (
+                            node.matches(
+                                '.aDh, .btC, [role="dialog"]'
+                            ) ||
+                            node.querySelector(
+                                '.aDh, .btC, [role="dialog"]'
+                            )
+                        )
+                );
+
+            if (hasComposeElements) {
+
+                console.log(
+                    'Compose Window Detected'
+                );
+
+                setTimeout(
+                    injectButton,
+                    500
+                );
+            }
         }
     }
-});
+);
 
-observer.observe(document.body, 
-{
-    childList: true,
-    subtree: true
-})
+observer.observe(
+    document.body,
+    {
+        childList: true,
+        subtree: true
+    }
+);
