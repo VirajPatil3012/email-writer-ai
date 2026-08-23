@@ -9,6 +9,8 @@ import axios from 'axios'
 function App() {
   const [emailContent, setEmailContent] = useState('');
   const [tone, setTone] = useState('');
+  const [geminiUrl, setGeminiUrl] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
   const [generatedReply, setGeneratedReply] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,9 +19,11 @@ function App() {
       setLoading(true);
       setError('');
       try{
-        const response = await axios.post("http://localhost:8080/api/email/generate", {
+        const response = await axios.post("https://email-writer-backend-vigy.onrender.com/api/email/generate", {
         emailContent,
-        tone
+        tone,
+        geminiUrl,
+        geminiKey
       });
         setGeneratedReply(typeof response.data === 'string' ? response.data : JSON.stringify(response.data));
       }catch (error) {
@@ -36,8 +40,26 @@ function App() {
         Email Reply Generator
       </Typography>
 
-      <Box sx={{ mx : 3 }}>
-        <TextField 
+      <Box sx={{ mx: 3 }}>
+
+    <TextField
+        fullWidth
+        label="Gemini API URL"
+        value={geminiUrl}
+        onChange={(e) => setGeminiUrl(e.target.value)}
+        sx={{ mb: 2 }}
+    />
+
+    <TextField
+        fullWidth
+        type="password"
+        label="Gemini API Key"
+        value={geminiKey}
+        onChange={(e) => setGeminiKey(e.target.value)}
+        sx={{ mb: 2 }}
+    />
+
+    <TextField 
         fullWidth
         multiline
         rows={6}
@@ -45,8 +67,8 @@ function App() {
         label="Original Email Content"
         value={emailContent || ''}
         onChange={(e) => setEmailContent(e.target.value)}
-        sx={{ mb : 2 }}
-        />
+        sx={{ mb: 2 }}
+    />
 
         <FormControl fullWidth sx={{ mb : 2 }}>
           <InputLabel>
@@ -67,7 +89,7 @@ function App() {
         <Button
           variant='contained'
           onClick={handleSubmit}
-          disabled={!emailContent || loading}
+          disabled={!emailContent || !geminiUrl || !geminiKey || loading}
           fullWidth>
           {loading ? <CircularProgress size={24} /> : "Generate Reply"}
         </Button>
