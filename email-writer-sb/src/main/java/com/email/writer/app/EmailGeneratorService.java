@@ -13,26 +13,46 @@ public class EmailGeneratorService {
 
     private final WebClient webClient = WebClient.builder().build();
 
-    @Value("${gemini.api.url}")
+    @Value("${gemini.api.url:}")
     private String geminiApiUrl;
 
-    @Value("${gemini.api.key}")
+    @Value("${gemini.api.key:}")
     private String geminiApiKey;
 
     public String generateEmailReply(EmailRequest emailRequest) {
 
         String prompt = buildPrompt(emailRequest);
 
-        // Request body for Gemini Interactions API
+        String apiUrl = emailRequest.getGeminiUrl();
+        String apiKey = emailRequest.getGeminiKey();
+
+        // If user did not provide credentials,
+        // use the environment variables configured locally.
+        if (apiUrl == null || apiUrl.isBlank()) {
+            apiUrl = geminiApiUrl;
+        }
+
+        if (apiKey == null || apiKey.isBlank()) {
+            apiKey = geminiApiKey;
+        }
+
+        if (apiUrl == null || apiUrl.isBlank()) {
+            return "Gemini API URL is not configured.";
+        }
+
+        if (apiKey == null || apiKey.isBlank()) {
+            return "Gemini API key is not configured.";
+        }
+
         Map<String, Object> requestBody = Map.of(
-                "model", "gemini-3.7-flash",
+                "model", "gemini-3.6-flash",
                 "input", prompt
         );
 
         try {
             String response = webClient.post()
-                    .uri(geminiApiUrl)
-                    .header("x-goog-api-key", geminiApiKey)
+                    .uri(apiUrl)
+                    .header("x-goog-api-key", apiKey)
                     .header("Content-Type", "application/json")
                     .bodyValue(requestBody)
                     .retrieve()

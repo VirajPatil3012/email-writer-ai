@@ -7,5 +7,7 @@ frontend/dist/
 
 .idea/
 *.iml
+
 .env
 .env.*
+backend/.env
