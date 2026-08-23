@@ -1,10 +1,20 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
-import { Box,Select, TextField, Typography, Container, FormControl, InputLabel, MenuItem, Button, CircularProgress} from '@mui/material'
-import axios from 'axios'
+import { useState } from 'react';
+import {
+  Box,
+  Select,
+  TextField,
+  Typography,
+  Container,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Button,
+  CircularProgress,
+  Paper,
+  Divider
+} from '@mui/material';
+import axios from 'axios';
+import './App.css';
 
 function App() {
   const [emailContent, setEmailContent] = useState('');
@@ -14,121 +24,194 @@ function App() {
   const [generatedReply, setGeneratedReply] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleSubmit = async () => {
-      setLoading(true);
-      setError('');
-      try{
-        const response = await axios.post("https://email-writer-backend-vigy.onrender.com/api/email/generate", {
-        emailContent,
-        tone,
-        geminiUrl,
-        geminiKey
-      });
-        setGeneratedReply(typeof response.data === 'string' ? response.data : JSON.stringify(response.data));
-      }catch (error) {
-        setError('Failed to generate email reply. Please Try again');
-        console.error(error);
-      }finally{
-        setLoading(false);
-      }
+    setLoading(true);
+    setError('');
+    setGeneratedReply('');
+
+    try {
+      const response = await axios.post(
+        'https://email-writer-backend-vigy.onrender.com/api/email/generate',
+        {
+          emailContent,
+          tone,
+          geminiUrl,
+          geminiKey
+        }
+      );
+
+      setGeneratedReply(
+        typeof response.data === 'string'
+          ? response.data
+          : JSON.stringify(response.data)
+      );
+    } catch (error) {
+      setError('Failed to generate email reply. Please try again.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Container maxWidth = "md" sx={{py:4}}>
-      <Typography variant='h3' component="h1" gutterBottom>
-        Email Reply Generator
-      </Typography>
+    <Box className="app">
+      <Container maxWidth="md">
 
-      <Box sx={{ mx: 3 }}>
+        <Box className="header">
+          <Typography className="badge">
+            AI POWERED
+          </Typography>
 
-    <TextField
-        fullWidth
-        label="Gemini API URL"
-        value={geminiUrl}
-        onChange={(e) => setGeminiUrl(e.target.value)}
-        sx={{ mb: 2 }}
-    />
+          <Typography variant="h2" className="title">
+            Email Reply Generator
+          </Typography>
 
-    <TextField
-        fullWidth
-        type="password"
-        label="Gemini API Key"
-        value={geminiKey}
-        onChange={(e) => setGeminiKey(e.target.value)}
-        sx={{ mb: 2 }}
-    />
+          <Typography className="subtitle">
+            Generate professional email replies in seconds.
+          </Typography>
+        </Box>
 
-    <TextField 
-        fullWidth
-        multiline
-        rows={6}
-        variant='outlined'
-        label="Original Email Content"
-        value={emailContent || ''}
-        onChange={(e) => setEmailContent(e.target.value)}
-        sx={{ mb: 2 }}
-    />
+        <Paper className="card">
 
-        <FormControl fullWidth sx={{ mb : 2 }}>
-          <InputLabel>
-            Tone (Optional)
-          </InputLabel>
+          <Typography variant="h6" className="section-title">
+            Write your reply
+          </Typography>
 
-          <Select 
-            value = {tone || ''}
-            label = {"Tone (Optional)"}
-            onChange={(e) => setTone(e.target.value)}>
+          <Typography className="section-description">
+            Paste an email and let AI create a reply for you.
+          </Typography>
+
+          <TextField
+            fullWidth
+            multiline
+            rows={7}
+            label="Original Email Content"
+            placeholder="Paste the email you want to reply to..."
+            value={emailContent}
+            onChange={(e) => setEmailContent(e.target.value)}
+            margin="normal"
+          />
+
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Tone</InputLabel>
+
+            <Select
+              value={tone}
+              label="Tone"
+              onChange={(e) => setTone(e.target.value)}
+            >
               <MenuItem value="">None</MenuItem>
               <MenuItem value="professional">Professional</MenuItem>
               <MenuItem value="casual">Casual</MenuItem>
               <MenuItem value="friendly">Friendly</MenuItem>
-          </Select>
-        </FormControl>
-
-        <Button
-          variant='contained'
-          onClick={handleSubmit}
-          disabled={!emailContent || !geminiUrl || !geminiKey || loading}
-          fullWidth>
-          {loading ? <CircularProgress size={24} /> : "Generate Reply"}
-        </Button>
-      </Box>
-
-      {error && (
-        <Typography color='error' sx = {{ mb:2 }}>
-          {error}
-        </Typography>
-      )}
-
-      {generatedReply && (
-        <Box sx = {{ mt : 3}}>
-          <Typography variant='h6' gutterBottom>
-            Generated Reply:
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={6}
-            variant='outlined'
-            value={generatedReply || ''}
-            slotProps={{
-              htmlInput: {
-                      readOnly: true
-                  }
-              }}
-          />
+            </Select>
+          </FormControl>
 
           <Button
-            variant='outlined'
-            sx={{ mt : 2 }}
-            onClick={() => navigator.clipboard.writeText(generatedReply)}>
-              Copy to Clipboard
+            className="generate-button"
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={!emailContent || !geminiUrl || !geminiKey || loading}
+            fullWidth
+          >
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Generate Reply'
+            )}
           </Button>
-        </Box>
-      )}
-    </Container>
-  )
+
+          {error && (
+            <Typography className="error-message">
+              {error}
+            </Typography>
+          )}
+
+          <Divider sx={{ my: 3 }} />
+
+          <Button
+            className="settings-button"
+            onClick={() => setShowSettings(!showSettings)}
+          >
+            ⚙ API Settings
+            <span>{showSettings ? '▲' : '▼'}</span>
+          </Button>
+
+          {showSettings && (
+            <Box className="settings-box">
+
+              <Typography className="settings-description">
+                Enter your Gemini API credentials. These are required to
+                generate replies.
+              </Typography>
+
+              <TextField
+                fullWidth
+                label="Gemini API URL"
+                value={geminiUrl}
+                onChange={(e) => setGeminiUrl(e.target.value)}
+                margin="normal"
+              />
+
+              <TextField
+                fullWidth
+                type="password"
+                label="Gemini API Key"
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
+                margin="normal"
+              />
+
+            </Box>
+          )}
+
+        </Paper>
+
+        {generatedReply && (
+          <Paper className="card reply-card">
+
+            <Typography variant="h6" className="section-title">
+              Generated Reply
+            </Typography>
+
+            <Typography className="section-description">
+              Your AI-generated response is ready.
+            </Typography>
+
+            <TextField
+              fullWidth
+              multiline
+              rows={8}
+              value={generatedReply}
+              slotProps={{
+                htmlInput: {
+                  readOnly: true
+                }
+              }}
+            />
+
+            <Button
+              variant="outlined"
+              className="copy-button"
+              onClick={() =>
+                navigator.clipboard.writeText(generatedReply)
+              }
+            >
+              Copy Reply
+            </Button>
+
+          </Paper>
+        )}
+
+        <Typography className="footer">
+          Built with React, Spring Boot & Gemini
+        </Typography>
+
+      </Container>
+    </Box>
+  );
 }
 
-export default App
+export default App;
