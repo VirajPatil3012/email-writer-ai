@@ -1,5 +1,11 @@
 # Email Writer AI
 
+## Live Demo
+
+🌐 **Web Application:** https://email-writer-ai-eight.vercel.app/
+
+🔗 **GitHub:** https://github.com/VirajPatil3012/email-writer-ai
+
 An AI-powered email reply generator built using **React, Spring Boot, Google Gemini API, and a Chrome Extension for Gmail**.
 
 The project provides two ways to generate email replies:
